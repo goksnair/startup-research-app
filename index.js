@@ -1,6 +1,9 @@
 // Startup Research App - MVP Version
 // Clean, simple, production-ready implementation
 
+// Load environment variables
+require('dotenv').config();
+
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -8,6 +11,11 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
+
+// Import routes and middleware
+const authRoutes = require('./routes/auth');
+const researchRoutes = require('./routes/research');
+const { optionalAuth } = require('./middleware/auth');
 
 const app = express();
 
@@ -41,9 +49,9 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-    origin: NODE_ENV === 'production' 
-        ? ['https://startup-research-app.vercel.app'] 
-        : ['http://localhost:3000'],
+    origin: NODE_ENV === 'production'
+        ? ['https://startup-research-app.vercel.app']
+        : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true
 }));
 
@@ -61,6 +69,16 @@ app.use((req, res, next) => {
     next();
 });
 
+// Supabase middleware (make supabase available to all routes)
+app.use((req, res, next) => {
+    req.supabase = supabase;
+    next();
+});
+
+// Authentication routes
+app.use('/api/auth', authRoutes);
+app.use('/api/user', optionalAuth, researchRoutes);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
@@ -71,14 +89,14 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Main research endpoint
-app.post('/api/research', async (req, res) => {
+// Main research endpoint (with optional authentication)
+app.post('/api/research', optionalAuth, async (req, res) => {
     try {
         const { company, query, analysis_type = 'comprehensive' } = req.body;
 
         if (!company) {
-            return res.status(400).json({ 
-                error: 'Company name is required' 
+            return res.status(400).json({
+                error: 'Company name is required'
             });
         }
 
@@ -99,7 +117,7 @@ app.post('/api/research', async (req, res) => {
 
         // Create research prompt
         const systemPrompt = `You are an expert startup and business analyst. Provide professional, factual analysis based on publicly available information.`;
-        
+
         let userPrompt;
         switch (analysis_type) {
             case 'market':
@@ -131,16 +149,34 @@ app.post('/api/research', async (req, res) => {
         // Save to database if configured
         if (supabase) {
             try {
+                const dbRecord = {
+                    company,
+                    query: query || '',
+                    analysis_type,
+                    analysis,
+                    created_at: new Date().toISOString(),
+                    tokens_used: completion.usage?.total_tokens || 0
+                };
+
+                // Add user_id if user is authenticated
+                if (req.user) {
+                    dbRecord.user_id = req.user.id;
+
+                    // Calculate estimated cost (rough estimate: $0.002 per 1K tokens)
+                    const estimatedCost = (completion.usage?.total_tokens || 0) * 0.000002;
+                    dbRecord.cost_usd = estimatedCost;
+
+                    // Update user usage statistics
+                    await supabase.rpc('increment_user_usage', {
+                        p_user_id: req.user.id,
+                        p_tokens: completion.usage?.total_tokens || 0,
+                        p_cost: estimatedCost
+                    });
+                }
+
                 await supabase
                     .from('research_queries')
-                    .insert({
-                        company,
-                        query: query || '',
-                        analysis_type,
-                        analysis,
-                        created_at: new Date().toISOString(),
-                        tokens_used: completion.usage?.total_tokens || 0
-                    });
+                    .insert(dbRecord);
             } catch (dbError) {
                 console.warn('Failed to save to database:', dbError.message);
             }
@@ -179,7 +215,7 @@ app.get('*', (req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
-    res.status(500).json({ 
+    res.status(500).json({
         error: 'Internal Server Error',
         message: NODE_ENV === 'development' ? err.message : 'Something went wrong'
     });

@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Research - AI-Powered Business Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            color: white;
+            text-align: right;
+        }
+
+        .user-info button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .user-info button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .results,
+        .history {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results h2,
+        .history h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .analysis-content {
+            white-space: pre-line;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .history-item {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .history-company {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .history-date {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .history-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .history-analysis {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-demo {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .error,
+        .success {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            margin: 0 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .pagination button:hover {
+            background: #f8f9fa;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .main-card {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .user-info {
+                position: static;
+                text-align: center;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span id="userName"></span>
+                <button onclick="showProfile()">Profile</button>
+                <button onclick="logout()">Logout</button>
+            </div>
+            <h1>🚀 Startup Research</h1>
+            <p>AI-Powered Business Intelligence Platform</p>
+        </header>
+
+        <div class="main-card">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('research')">🔍 Research</div>
+                <div class="tab" onclick="switchTab('history')">📋 History</div>
+                <div class="tab" onclick="switchTab('auth')">👤 Account</div>
+            </div>
+
+            <!-- Research Tab -->
+            <div id="research" class="tab-content active">
+                <form id="researchForm">
+                    <div class="form-group">
+                        <label for="company">Company Name *</label>
+                        <input type="text" id="company" name="company" placeholder="e.g., OpenAI, Stripe, Airbnb"
+                            required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="analysisType">Analysis Type</label>
+                            <select id="analysisType" name="analysisType">
+                                <option value="comprehensive">Comprehensive Analysis</option>
+                                <option value="market">Market Analysis</option>
+                                <option value="competitors">Competitor Analysis</option>
+                                <option value="funding">Funding Analysis</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="query">Specific Focus (Optional)</label>
+                        <textarea id="query" name="query" rows="3"
+                            placeholder="Any specific aspects you want to focus on..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">
+                        Analyze Company
+                    </button>
+                </form>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history" class="tab-content">
+                <div class="form-row">
+                    <div class="form-group">
+                        <input type="text" id="historySearch" placeholder="Search companies..."
+                            onkeyup="filterHistory()">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn" onclick="exportHistory()">Export History</button>
+                    </div>
+                </div>
+                <div id="historyContent">
+                    <p>Please log in to view your research history.</p>
+                </div>
+                <div id="historyPagination" class="pagination"></div>
+            </div>
+
+            <!-- Auth Tab -->
+            <div id="auth" class="tab-content">
+                <div id="loginForm">
+                    <h3>Login to Your Account</h3>
+                    <form id="userLoginForm">
+                        <div class="form-group">
+                            <label for="loginEmail">Email</label>
+                            <input type="email" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn">Login</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 20px;">
+                        Don't have an account? <a href="#" onclick="showRegister()">Sign up here</a>
+                    </p>
+                </div>
+
+                <div id="registerForm" style="display: none;">
+                    <h3>Create New Account</h3>
+                    <form id="userRegisterForm">
+                        <div class="form-group">
+                            <label for="registerName">Full Name</label>
+                            <input type="text" id="registerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerEmail">Email</label>
+                            <input type="email" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Password (min 6 characters)</label>
+                            <input type="password" id="registerPassword" required>
+                        </div>
+                        <button type="submit" class="btn">Create Account</button>
+                    </form>
+                    <p style="text-align: center; margin-top: 20px;">
+                        Already have an account? <a href="#" onclick="showLogin()">Login here</a>
+                    </p>
+                </div>
+
+                <div id="profileView" style="display: none;">
+                    <h3>Your Profile</h3>
+                    <div id="profileContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing company data with AI...</p>
+        </div>
+
+        <div class="results" id="results">
+            <h2 id="resultTitle">Analysis Results <span id="statusBadge" class="status-badge"></span></h2>
+            <div class="analysis-content" id="analysisContent"></div>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
+                <strong>Timestamp:</strong> <span id="timestamp"></span><br>
+                <strong>Analysis Type:</strong> <span id="analysisTypeResult"></span><br>
+                <strong>Model:</strong> <span id="model"></span><br>
+                <strong>Tokens Used:</strong> <span id="tokensUsed"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentUser = null;
+        let authToken = localStorage.getItem('authToken');
+        let currentPage = 1;
+        let historyData = [];
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function () {
+            if (authToken) {
+                getUserProfile();
+            }
+            setupEventListeners();
+            document.getElementById('company').focus();
+        });
+
+        function setupEventListeners() {
+            // Research form
+            document.getElementById('researchForm').addEventListener('submit', handleResearch);
+
+            // Auth forms
+            document.getElementById('userLoginForm').addEventListener('submit', handleLogin);
+            document.getElementById('userRegisterForm').addEventListener('submit', handleRegister);
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            document.querySelector(`.tab:nth-child(${tabName === 'research' ? 1 : tabName === 'history' ? 2 : 3})`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            if (tabName === 'history' && currentUser) {
+                loadHistory();
+            }
+        }
+
+        // Authentication functions
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    currentUser = data.user;
+                    showSuccess('Login successful!');
+                    updateUIForLoggedInUser();
+                    switchTab('research');
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Login failed. Please try again.');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    currentUser = data.user;
+                    showSuccess('Account created successfully!');
+                    updateUIForLoggedInUser();
+                    switchTab('research');
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Registration failed. Please try again.');
+            }
+        }
+
+        async function getUserProfile() {
+            try {
+                const response = await fetch('/api/auth/profile', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    updateUIForLoggedInUser();
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+
+        function updateUIForLoggedInUser() {
+            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('profileView').style.display = 'block';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
+
+            // Update profile content
+            document.getElementById('profileContent').innerHTML = `
+                <p><strong>Name:</strong> ${currentUser.name}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+                <p><strong>Member since:</strong> ${new Date(currentUser.created_at).toLocaleDateString()}</p>
+                <p><strong>Subscription:</strong> ${currentUser.subscription_tier || 'Free'}</p>
+            `;
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('profileView').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            showSuccess('Logged out successfully!');
+        }
+
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        }
+
+        function showRegister() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        function showProfile() {
+            switchTab('auth');
+        }
+
+        // Research function
+        async function handleResearch(e) {
+            e.preventDefault();
+
+            const company = document.getElementById('company').value;
+            const analysisType = document.getElementById('analysisType').value;
+            const query = document.getElementById('query').value;
+
+            // Show loading state
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = 'Analyzing...';
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+
+                const response = await fetch('/api/research', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        company,
+                        analysis_type: analysisType,
+                        query
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show results
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results').style.display = 'block';
+
+                    document.getElementById('resultTitle').innerHTML =
+                        `Analysis Results for ${data.company} <span id="statusBadge" class="status-badge status-${data.status}">${data.status}</span>`;
+                    document.getElementById('analysisContent').textContent = data.data.analysis;
+                    document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
+                    document.getElementById('analysisTypeResult').textContent = data.analysis_type;
+                    document.getElementById('model').textContent = data.data.model || 'N/A';
+                    document.getElementById('tokensUsed').textContent = data.data.tokens_used || 'N/A';
+
+                    // Scroll to results
+                    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError(`Error: ${error.message}`);
+            } finally {
+                // Reset button
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = 'Analyze Company';
+            }
+        }
+
+        // History functions
+        async function loadHistory(page = 1) {
+            if (!authToken) {
+                document.getElementById('historyContent').innerHTML = '<p>Please log in to view your research history.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/user/history?page=${page}&limit=10`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    historyData = data.research;
+                    displayHistory(data.research);
+                    displayPagination(data.pagination);
+                } else {
+                    showError('Failed to load history');
+                }
+            } catch (error) {
+                showError('Failed to load history');
+            }
+        }
+
+        function displayHistory(research) {
+            const historyContent = document.getElementById('historyContent');
+
+            if (research.length === 0) {
+                historyContent.innerHTML = '<p>No research history found.</p>';
+                return;
+            }
+
+            const historyHTML = research.map(item => `
+                <div class="history-item">
+                    <div class="history-header">
+                        <div class="history-company">${item.company}</div>
+                        <div class="history-date">${new Date(item.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div class="history-meta">
+                        ${item.analysis_type} • ${item.tokens_used || 0} tokens
+                    </div>
+                    <div class="history-analysis">
+                        ${item.analysis.substring(0, 300)}${item.analysis.length > 300 ? '...' : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            historyContent.innerHTML = historyHTML;
+        }
+
+        function displayPagination(pagination) {
+            const paginationEl = document.getElementById('historyPagination');
+
+            if (pagination.pages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+            for (let i = 1; i <= pagination.pages; i++) {
+                paginationHTML += `
+                    <button class="${i === pagination.page ? 'active' : ''}" onclick="loadHistory(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            paginationEl.innerHTML = paginationHTML;
+        }
+
+        async function exportHistory() {
+            if (!authToken) {
+                showError('Please log in to export history');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/export?format=csv', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'research_history.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    showError('Failed to export history');
+                }
+            } catch (error) {
+                showError('Failed to export history');
+            }
+        }
+
+        function filterHistory() {
+            const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+            const filteredData = historyData.filter(item =>
+                item.company.toLowerCase().includes(searchTerm)
+            );
+            displayHistory(filteredData);
+        }
+
+        // Utility functions
+        function showError(message) {
+            showMessage(message, 'error');
+        }
+
+        function showSuccess(message) {
+            showMessage(message, 'success');
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            document.querySelector('.container').appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+
+</html>
