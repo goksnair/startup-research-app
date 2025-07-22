@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Research - AI-Powered Business Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        
+        .results h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .analysis-content {
+            white-space: pre-line;
+            line-height: 1.8;
+            color: #555;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-demo {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .feature-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚀 Startup Research</h1>
+            <p>AI-Powered Business Intelligence Platform</p>
+        </header>
+        
+        <div class="main-card">
+            <form id="researchForm">
+                <div class="form-group">
+                    <label for="company">Company Name *</label>
+                    <input type="text" id="company" name="company" placeholder="e.g., OpenAI, Stripe, Airbnb" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="analysisType">Analysis Type</label>
+                    <select id="analysisType" name="analysisType">
+                        <option value="comprehensive">Comprehensive Analysis</option>
+                        <option value="market">Market Analysis</option>
+                        <option value="competitors">Competitor Analysis</option>
+                        <option value="funding">Funding Analysis</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="query">Specific Focus (Optional)</label>
+                    <textarea id="query" name="query" rows="3" placeholder="Any specific aspects you want to focus on..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">
+                    Analyze Company
+                </button>
+            </form>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing company data with AI...</p>
+        </div>
+        
+        <div class="results" id="results">
+            <h2 id="resultTitle">Analysis Results <span id="statusBadge" class="status-badge"></span></h2>
+            <div class="analysis-content" id="analysisContent"></div>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
+                <strong>Timestamp:</strong> <span id="timestamp"></span><br>
+                <strong>Analysis Type:</strong> <span id="analysisTypeResult"></span><br>
+                <strong>Model:</strong> <span id="model"></span>
+            </div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3>🎯 Market Analysis</h3>
+                <p>Get insights on market size, trends, and opportunities</p>
+            </div>
+            <div class="feature-card">
+                <h3>🏢 Competitor Intelligence</h3>
+                <p>Understand competitive landscape and positioning</p>
+            </div>
+            <div class="feature-card">
+                <h3>💰 Funding Insights</h3>
+                <p>Track funding rounds, investors, and valuation</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('researchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const company = document.getElementById('company').value;
+            const analysisType = document.getElementById('analysisType').value;
+            const query = document.getElementById('query').value;
+            
+            // Show loading state
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = 'Analyzing...';
+            
+            try {
+                const response = await fetch('/api/research', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        company,
+                        analysis_type: analysisType,
+                        query
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Show results
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results').style.display = 'block';
+                    
+                    document.getElementById('resultTitle').innerHTML = 
+                        `Analysis Results for ${data.company} <span id="statusBadge" class="status-badge status-${data.status}">${data.status}</span>`;
+                    document.getElementById('analysisContent').textContent = data.data.analysis;
+                    document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
+                    document.getElementById('analysisTypeResult').textContent = data.analysis_type;
+                    document.getElementById('model').textContent = data.data.model || 'N/A';
+                    
+                    // Scroll to results
+                    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
+                
+                // Show error
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = `Error: ${error.message}`;
+                document.querySelector('.container').appendChild(errorDiv);
+                
+                // Remove error after 5 seconds
+                setTimeout(() => {
+                    errorDiv.remove();
+                }, 5000);
+            } finally {
+                // Reset button
+                document.getElementById('submitBtn').disabled = false;
+                document.getElementById('submitBtn').textContent = 'Analyze Company';
+            }
+        });
+        
+        // Auto-focus on company input
+        document.getElementById('company').focus();
+    </script>
+</body>
+</html>

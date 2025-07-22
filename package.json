@@ -1,0 +1,41 @@
+{
+  "name": "startup-research-app",
+  "version": "1.0.0",
+  "description": "AI-powered startup research and business intelligence platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "test": "echo \"Tests to be implemented in Phase 2\" && exit 0",
+    "deploy": "vercel --prod",
+    "backup": "node scripts/daily-backup.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goksnair/startup-research-app.git"
+  },
+  "keywords": [
+    "startup-research",
+    "business-intelligence",
+    "ai-powered",
+    "openai",
+    "gpt-4"
+  ],
+  "author": "Startup Research Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.5",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^7.1.0",
+    "openai": "^5.8.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
