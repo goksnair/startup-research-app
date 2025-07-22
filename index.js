@@ -15,6 +15,7 @@ const OpenAI = require('openai');
 // Import routes and middleware
 const authRoutes = require('./routes/auth');
 const researchRoutes = require('./routes/research');
+const batchRoutes = require('./routes/batch-test');
 const { optionalAuth } = require('./middleware/auth');
 
 const app = express();
@@ -78,6 +79,7 @@ app.use((req, res, next) => {
 // Authentication routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', optionalAuth, researchRoutes);
+app.use('/api/batch', optionalAuth, batchRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -229,6 +231,13 @@ if (require.main === module) {
         console.log(`🤖 OpenAI: ${openai ? 'Configured' : 'Not configured (demo mode)'}`);
         console.log(`💾 Supabase: ${supabase ? 'Configured' : 'Not configured'}`);
     });
+}
+
+// Start job processors for Phase 3 features
+if (NODE_ENV === 'production' || process.env.ENABLE_JOBS === 'true') {
+    console.log('🔄 Starting job processors...');
+    // require('./jobs/batchProcessor'); // Temporarily disabled for testing
+    // Additional job processors will be added here
 }
 
 // Export for Vercel

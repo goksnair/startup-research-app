@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Research - Phase 3 Batch Processing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-card {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        .batch-list {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .batch-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .batch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .batch-id {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .batch-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .status-queued {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-processing {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-completed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-cancelled {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .batch-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .company-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .company-tag {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 0.8em;
+        }
+
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Phase 3: Batch Processing</h1>
+            <p>Analyze multiple companies at once with advanced AI insights</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Batch Creation Form -->
+            <div class="card">
+                <h2>📦 Create Batch Analysis</h2>
+                <form id="batchForm">
+                    <div class="form-group">
+                        <label for="companies">Companies to Analyze (one per line):</label>
+                        <textarea id="companies" rows="8" placeholder="Tesla&#10;SpaceX&#10;Stripe&#10;OpenAI&#10;Apple"
+                            required></textarea>
+                        <small>Enter 1-50 company names, one per line</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="analysisType">Analysis Type:</label>
+                        <select id="analysisType">
+                            <option value="comprehensive">Comprehensive Analysis</option>
+                            <option value="financial">Financial Focus</option>
+                            <option value="quick">Quick Overview</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="priority">Priority:</label>
+                        <select id="priority">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="includePdf">
+                            <label for="includePdf">Generate PDF Report</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="sendEmail">
+                            <label for="sendEmail">Email When Complete</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" id="createBatchBtn">
+                        Create Batch Analysis
+                    </button>
+                </form>
+            </div>
+
+            <!-- Recent Batches -->
+            <div class="card">
+                <h2>📊 Your Recent Batches</h2>
+                <div id="batchList" class="batch-list">
+                    <p>Loading your batches...</p>
+                </div>
+                <button id="refreshBatches" class="btn" style="margin-top: 20px;">
+                    🔄 Refresh Batches
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Display -->
+        <div class="card status-card hidden" id="statusCard">
+            <h2>📈 Batch Status</h2>
+            <div id="batchStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let authToken = localStorage.getItem('token');
+        let refreshInterval = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!authToken) {
+                alert('Please log in first!');
+                window.location.href = '/index-auth.html';
+                return;
+            }
+
+            await loadUserBatches();
+            setupEventListeners();
+
+            // Auto-refresh batches every 10 seconds
+            refreshInterval = setInterval(loadUserBatches, 10000);
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('batchForm').addEventListener('submit', createBatch);
+            document.getElementById('refreshBatches').addEventListener('click', loadUserBatches);
+        }
+
+        // Create batch analysis
+        async function createBatch(event) {
+            event.preventDefault();
+
+            const companiesText = document.getElementById('companies').value.trim();
+            const analysisType = document.getElementById('analysisType').value;
+            const priority = document.getElementById('priority').value;
+            const includePdf = document.getElementById('includePdf').checked;
+            const sendEmail = document.getElementById('sendEmail').checked;
+
+            if (!companiesText) {
+                alert('Please enter at least one company name');
+                return;
+            }
+
+            const companies = companiesText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (companies.length === 0) {
+                alert('Please enter valid company names');
+                return;
+            }
+
+            if (companies.length > 50) {
+                alert('Maximum 50 companies allowed per batch');
+                return;
+            }
+
+            const createBtn = document.getElementById('createBatchBtn');
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<span class="loading">⏳</span> Creating Batch...';
+
+            try {
+                const response = await fetch('/api/batch/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        companies,
+                        analysisType,
+                        priority,
+                        includePdf,
+                        sendEmail
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Batch created successfully!\nBatch ID: ${result.data.batchId}\nEstimated time: ${result.data.estimatedTime}`);
+
+                    // Clear form
+                    document.getElementById('companies').value = '';
+                    document.getElementById('includePdf').checked = false;
+                    document.getElementById('sendEmail').checked = false;
+
+                    // Refresh batch list
+                    await loadUserBatches();
+                } else {
+                    alert(`❌ Failed to create batch:\n${result.message || result.error}`);
+                }
+
+            } catch (error) {
+                console.error('Create batch error:', error);
+                alert('❌ Network error. Please try again.');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.innerHTML = 'Create Batch Analysis';
+            }
+        }
+
+        // Load user's batches
+        async function loadUserBatches() {
+            try {
+                const response = await fetch('/api/batch', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayBatches(result.data.batches);
+                } else {
+                    document.getElementById('batchList').innerHTML = '<p>❌ Failed to load batches</p>';
+                }
+
+            } catch (error) {
+                console.error('Load batches error:', error);
+                document.getElementById('batchList').innerHTML = '<p>❌ Network error</p>';
+            }
+        }
+
+        // Display batches
+        function displayBatches(batches) {
+            const batchList = document.getElementById('batchList');
+
+            if (batches.length === 0) {
+                batchList.innerHTML = '<p>📭 No batches yet. Create your first batch above!</p>';
+                return;
+            }
+
+            batchList.innerHTML = batches.map(batch => `
+                <div class="batch-item">
+                    <div class="batch-header">
+                        <span class="batch-id">${batch.id.substring(0, 8)}...</span>
+                        <span class="batch-status status-${batch.status}">${batch.status.toUpperCase()}</span>
+                    </div>
+                    
+                    ${batch.status === 'processing' ? `
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(batch.processedCompanies / batch.totalCompanies) * 100}%"></div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="batch-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${batch.totalCompanies}</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${batch.successCount || 0}</div>
+                            <div class="stat-label">Success</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${batch.errorCount || 0}</div>
+                            <div class="stat-label">Errors</div>
+                        </div>
+                        ${batch.duration ? `
+                            <div class="stat-item">
+                                <div class="stat-value">${Math.round(batch.duration / 1000)}s</div>
+                                <div class="stat-label">Duration</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button onclick="viewBatch('${batch.id}')" class="btn" style="flex: 1; padding: 8px;">
+                            📊 View Details
+                        </button>
+                        ${batch.status === 'queued' || batch.status === 'processing' ? `
+                            <button onclick="cancelBatch('${batch.id}')" class="btn" style="flex: 1; padding: 8px; background: #dc3545;">
+                                🚫 Cancel
+                            </button>
+                        ` : ''}
+                    </div>
+                    
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        Created: ${new Date(batch.createdAt).toLocaleString()}
+                        ${batch.completedAt ? `<br>Completed: ${new Date(batch.completedAt).toLocaleString()}` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // View batch details
+        async function viewBatch(batchId) {
+            try {
+                const response = await fetch(`/api/batch/${batchId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const batch = result.data;
+                    const modal = window.open('', '_blank', 'width=800,height=600');
+                    modal.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Batch Details - ${batchId}</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 20px; }
+                                .section { margin-bottom: 20px; }
+                                .company-result { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; }
+                                .error { background: #f8d7da; color: #721c24; }
+                                pre { background: #f1f3f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>📊 Batch Analysis Details</h1>
+                            <div class="section">
+                                <h3>Batch Information</h3>
+                                <p><strong>ID:</strong> ${batch.id}</p>
+                                <p><strong>Status:</strong> ${batch.status}</p>
+                                <p><strong>Progress:</strong> ${batch.progress}%</p>
+                                <p><strong>Companies:</strong> ${batch.totalCompanies} total, ${batch.successCount} successful, ${batch.errorCount} errors</p>
+                            </div>
+                            
+                            ${batch.results.length > 0 ? `
+                                <div class="section">
+                                    <h3>✅ Successful Analyses</h3>
+                                    ${batch.results.map(result => `
+                                        <div class="company-result">
+                                            <h4>${result.company}</h4>
+                                            <p><strong>Type:</strong> ${result.analysisType}</p>
+                                            <p><strong>Processed:</strong> ${new Date(result.timestamp).toLocaleString()}</p>
+                                            <details>
+                                                <summary>View Analysis</summary>
+                                                <pre>${JSON.stringify(result.analysis, null, 2)}</pre>
+                                            </details>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            
+                            ${batch.errors.length > 0 ? `
+                                <div class="section">
+                                    <h3>❌ Errors</h3>
+                                    ${batch.errors.map(error => `
+                                        <div class="company-result error">
+                                            <h4>${error.company}</h4>
+                                            <p><strong>Error:</strong> ${error.error}</p>
+                                            <p><strong>Time:</strong> ${new Date(error.timestamp).toLocaleString()}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </body>
+                        </html>
+                    `);
+                } else {
+                    alert('❌ Failed to load batch details');
+                }
+
+            } catch (error) {
+                console.error('View batch error:', error);
+                alert('❌ Network error');
+            }
+        }
+
+        // Cancel batch
+        async function cancelBatch(batchId) {
+            if (!confirm('Are you sure you want to cancel this batch?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/batch/${batchId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Batch cancelled successfully');
+                    await loadUserBatches();
+                } else {
+                    alert(`❌ Failed to cancel batch: ${result.message}`);
+                }
+
+            } catch (error) {
+                console.error('Cancel batch error:', error);
+                alert('❌ Network error');
+            }
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+
+</html>

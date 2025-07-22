@@ -12,8 +12,20 @@
       "dest": "index.js"
     },
     {
+      "src": "/api/auth/(.*)",
+      "dest": "index.js"
+    },
+    {
+      "src": "/api/user/(.*)",
+      "dest": "index.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "index.js"
+    },
+    {
+      "src": "/index-auth.html",
+      "dest": "public/index-auth.html"
     },
     {
       "src": "/(.*)",
