@@ -1,6 +1,7 @@
 const { batchQueue, memoryQueue } = require('../services/queueService');
 const analysisService = require('../services/analysisService');
 const supabase = require('../database/supabase');
+const { trackBatchOperation } = require('../middleware/analytics');
 
 // Enhanced batch processor that works with both Redis and Memory queues
 const processBatchJob = async (job) => {
@@ -109,6 +110,16 @@ const processBatchJob = async (job) => {
         });
 
         console.log(`🎉 Batch ${batchId} completed: ${results.length} successful, ${errors.length} failed`);
+
+        // Track batch completion analytics
+        await trackBatchOperation({
+            id: batchId,
+            user_id: userId,
+            companies,
+            success_count: results.length,
+            processing_time_ms: Date.now() - new Date(batchData.created_at || Date.now()).getTime(),
+            options
+        });
 
         // Trigger post-processing tasks
         await triggerPostProcessing(batchId, userId, options, results, comparativeAnalysis, companies, batchData);

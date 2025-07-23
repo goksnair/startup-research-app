@@ -2,6 +2,7 @@ const { reportQueue, emailQueue } = require('../services/queueService');
 const pdfService = require('../services/pdfService');
 const emailService = require('../services/emailService');
 const supabase = require('../database/supabase');
+const { trackPDFGeneration, trackEmailNotification } = require('../middleware/analytics');
 
 // PDF Report Generation Processor
 const generatePDFReport = async (job) => {
@@ -104,6 +105,16 @@ const generatePDFReport = async (job) => {
             job.progress(100);
         }
 
+        // Track PDF generation analytics
+        await trackPDFGeneration({
+            id: reportRecord.id,
+            user_id: userId,
+            report_type: reportType,
+            companies: reportResult.companies,
+            file_size: reportResult.fileSize,
+            generation_time_ms: Date.now() - (job.processedOn || Date.now())
+        });
+
         console.log(`✅ PDF report generated successfully: ${reportResult.fileName}`);
 
         return {
@@ -173,6 +184,14 @@ const sendReportEmail = async (job) => {
         if (job.progress) {
             job.progress(100);
         }
+
+        // Track email notification analytics
+        await trackEmailNotification({
+            user_id: emailData.userId,
+            email_type: 'report_ready',
+            status: 'sent',
+            processing_time_ms: Date.now() - (job.processedOn || Date.now())
+        });
 
         console.log(`✅ Report email sent successfully to: ${emailData.recipientEmail}`);
 

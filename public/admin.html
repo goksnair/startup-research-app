@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Startup Research Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .auth-section {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .card h3 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .metric-value.success {
+            color: #059669;
+        }
+
+        .metric-value.error {
+            color: #dc2626;
+        }
+
+        .metric-value.warning {
+            color: #d97706;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+        }
+
+        .btn.secondary {
+            background: #6b7280;
+        }
+
+        .btn.secondary:hover {
+            background: #4b5563;
+        }
+
+        select, input {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-indicator.healthy {
+            background-color: #10b981;
+        }
+
+        .status-indicator.warning {
+            background-color: #f59e0b;
+        }
+
+        .status-indicator.error {
+            background-color: #ef4444;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #fecaca;
+            margin: 1rem 0;
+        }
+
+        .success {
+            background: #f0fdf4;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #bbf7d0;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .endpoint-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .endpoint-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+        .endpoint-path {
+            font-family: monospace;
+            color: #374151;
+        }
+
+        .endpoint-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔧 Admin Dashboard</h1>
+    </div>
+
+    <div class="container">
+        <!-- Authentication Section -->
+        <div class="auth-section" id="authSection">
+            <h2>Admin Authentication</h2>
+            <p>Please log in to access the admin dashboard.</p>
+            <div style="margin-top: 1rem;">
+                <input type="email" id="loginEmail" placeholder="Email" style="margin-right: 0.5rem;">
+                <input type="password" id="loginPassword" placeholder="Password" style="margin-right: 0.5rem;">
+                <button class="btn" onclick="login()">Login</button>
+            </div>
+            <div id="authError" class="error hidden"></div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboardContent" class="hidden">
+            <!-- Controls -->
+            <div class="controls">
+                <select id="timeframeSelect" onchange="refreshDashboard()">
+                    <option value="1h">Last Hour</option>
+                    <option value="24h" selected>Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                </select>
+                <button class="btn" onclick="refreshDashboard()">🔄 Refresh</button>
+                <button class="btn secondary" onclick="exportData()">📊 Export</button>
+                <button class="btn secondary" onclick="logout()">Logout</button>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- System Status Card -->
+                <div class="card">
+                    <h3><span class="status-indicator healthy" id="systemStatus"></span>System Status</h3>
+                    <div class="metric">
+                        <span class="metric-label">Uptime</span>
+                        <span class="metric-value" id="uptime">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Memory Usage</span>
+                        <span class="metric-value" id="memoryUsage">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Active Requests</span>
+                        <span class="metric-value" id="activeRequests">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Queue Status</span>
+                        <span class="metric-value success" id="queueStatus">Active</span>
+                    </div>
+                </div>
+
+                <!-- API Usage Card -->
+                <div class="card">
+                    <h3>📊 API Usage</h3>
+                    <div class="metric">
+                        <span class="metric-label">Total Requests</span>
+                        <span class="metric-value" id="totalRequests">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Successful</span>
+                        <span class="metric-value success" id="successfulRequests">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Errors</span>
+                        <span class="metric-value error" id="errorRequests">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Error Rate</span>
+                        <span class="metric-value" id="errorRate">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Response Time</span>
+                        <span class="metric-value" id="avgResponseTime">-</span>
+                    </div>
+                </div>
+
+                <!-- User Engagement Card -->
+                <div class="card">
+                    <h3>👥 User Engagement</h3>
+                    <div class="metric">
+                        <span class="metric-label">Total Users</span>
+                        <span class="metric-value" id="totalUsers">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Active Users</span>
+                        <span class="metric-value" id="activeUsers">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Engagement Rate</span>
+                        <span class="metric-value" id="engagementRate">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Batches</span>
+                        <span class="metric-value" id="totalBatches">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Success Rate</span>
+                        <span class="metric-value" id="batchSuccessRate">-</span>
+                    </div>
+                </div>
+
+                <!-- AI Usage Card -->
+                <div class="card">
+                    <h3>🤖 AI Usage</h3>
+                    <div class="metric">
+                        <span class="metric-label">Tokens Used</span>
+                        <span class="metric-value" id="tokensUsed">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Companies Analyzed</span>
+                        <span class="metric-value" id="companiesAnalyzed">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Reports Generated</span>
+                        <span class="metric-value" id="reportsGenerated">-</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Analysis Time</span>
+                        <span class="metric-value" id="avgAnalysisTime">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Endpoints Performance -->
+            <div class="card">
+                <h3>🚀 Endpoint Performance</h3>
+                <div class="endpoint-list" id="endpointList">
+                    <div class="loading">Loading endpoint data...</div>
+                </div>
+            </div>
+
+            <!-- Error Messages -->
+            <div id="dashboardError" class="error hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = localStorage.getItem('adminToken');
+        let refreshInterval;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            if (authToken) {
+                showDashboard();
+                refreshDashboard();
+            }
+        });
+
+        // Authentication
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showAuthError('Please enter both email and password');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    showDashboard();
+                    refreshDashboard();
+                } else {
+                    showAuthError(data.error || 'Login failed');
+                }
+            } catch (error) {
+                showAuthError('Login request failed: ' + error.message);
+            }
+        }
+
+        function logout() {
+            authToken = null;
+            localStorage.removeItem('adminToken');
+            showAuth();
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        }
+
+        function showAuth() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('dashboardContent').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardContent').classList.remove('hidden');
+            
+            // Auto-refresh every 30 seconds
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(refreshDashboard, 30000);
+        }
+
+        function showAuthError(message) {
+            const errorEl = document.getElementById('authError');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        function showDashboardError(message) {
+            const errorEl = document.getElementById('dashboardError');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+            setTimeout(() => errorEl.classList.add('hidden'), 5000);
+        }
+
+        // Dashboard data
+        async function refreshDashboard() {
+            if (!authToken) {
+                showAuth();
+                return;
+            }
+
+            const timeframe = document.getElementById('timeframeSelect').value;
+
+            try {
+                // Fetch dashboard data
+                const response = await fetch(`/api/analytics/dashboard?timeframe=${timeframe}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateDashboard(data.dashboard);
+                } else {
+                    showDashboardError(data.error || 'Failed to load dashboard data');
+                }
+
+                // Fetch platform analytics if admin
+                const platformResponse = await fetch(`/api/analytics/admin/platform?timeframe=${timeframe}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (platformResponse.ok) {
+                    const platformData = await platformResponse.json();
+                    if (platformData.success) {
+                        updateEngagementData(platformData.platform.engagement);
+                    }
+                }
+
+            } catch (error) {
+                showDashboardError('Failed to refresh dashboard: ' + error.message);
+            }
+        }
+
+        function updateDashboard(dashboard) {
+            // System Status
+            document.getElementById('uptime').textContent = dashboard.system.uptime.formatted || '-';
+            document.getElementById('memoryUsage').textContent = 
+                dashboard.system.memory ? `${dashboard.system.memory.used}MB / ${dashboard.system.memory.total}MB` : '-';
+            document.getElementById('activeRequests').textContent = dashboard.overview.requests || '0';
+
+            // API Usage
+            document.getElementById('totalRequests').textContent = dashboard.overview.requests || '0';
+            document.getElementById('successfulRequests').textContent = 
+                (dashboard.overview.requests - dashboard.overview.errors) || '0';
+            document.getElementById('errorRequests').textContent = dashboard.overview.errors || '0';
+            document.getElementById('errorRate').textContent = dashboard.overview.errorRate + '%' || '0%';
+            document.getElementById('avgResponseTime').textContent = dashboard.overview.avgResponseTime + 'ms' || '0ms';
+
+            // AI Usage
+            document.getElementById('tokensUsed').textContent = dashboard.overview.tokensUsed?.toLocaleString() || '0';
+
+            // Update endpoints
+            updateEndpoints(dashboard.endpoints);
+
+            // Update system status indicator
+            const statusEl = document.getElementById('systemStatus');
+            if (dashboard.system.status === 'healthy') {
+                statusEl.className = 'status-indicator healthy';
+            } else {
+                statusEl.className = 'status-indicator warning';
+            }
+        }
+
+        function updateEngagementData(engagement) {
+            if (!engagement) return;
+
+            document.getElementById('totalUsers').textContent = engagement.totalUsers || '0';
+            document.getElementById('activeUsers').textContent = engagement.activeUsers || '0';
+            document.getElementById('engagementRate').textContent = engagement.engagementRate + '%' || '0%';
+            document.getElementById('totalBatches').textContent = engagement.totalBatches || '0';
+            document.getElementById('batchSuccessRate').textContent = engagement.batchSuccessRate + '%' || '0%';
+        }
+
+        function updateEndpoints(endpoints) {
+            const container = document.getElementById('endpointList');
+            
+            if (!endpoints || Object.keys(endpoints).length === 0) {
+                container.innerHTML = '<div class="loading">No endpoint data available</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            Object.entries(endpoints).forEach(([endpoint, stats]) => {
+                const item = document.createElement('div');
+                item.className = 'endpoint-item';
+                item.innerHTML = `
+                    <span class="endpoint-path">${endpoint}</span>
+                    <div class="endpoint-stats">
+                        <span>${stats.count} requests</span>
+                        <span>${stats.avgTime}ms avg</span>
+                        <span class="${stats.errorRate > 5 ? 'error' : 'success'}">${stats.errorRate}% errors</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Export functionality
+        async function exportData() {
+            if (!authToken) return;
+
+            const timeframe = document.getElementById('timeframeSelect').value;
+
+            try {
+                const response = await fetch(`/api/analytics/export?timeframe=${timeframe}&format=json&includeSystem=true`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Download as JSON file
+                    const blob = new Blob([JSON.stringify(data.export, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `analytics-${timeframe}-${Date.now()}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    showDashboardError('Export failed: ' + data.error);
+                }
+            } catch (error) {
+                showDashboardError('Export failed: ' + error.message);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && document.getElementById('authSection').style.display !== 'none') {
+                login();
+            }
+            if (e.key === 'r' && e.ctrlKey) {
+                e.preventDefault();
+                refreshDashboard();
+            }
+        });
+    </script>
+</body>
+</html>

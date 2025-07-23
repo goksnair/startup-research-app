@@ -17,7 +17,9 @@ const authRoutes = require('./routes/auth');
 const researchRoutes = require('./routes/research');
 const batchRoutes = require('./routes/batch');
 const reportsRoutes = require('./routes/reports');
+const analyticsRoutes = require('./routes/analytics');
 const { optionalAuth } = require('./middleware/auth');
+const { trackAPIUsage, monitorPerformance, trackError } = require('./middleware/analytics');
 
 const app = express();
 
@@ -70,6 +72,10 @@ app.use(cors({
 
 // Body parsing and rate limiting
 app.use(express.json({ limit: '1mb' }));
+
+// Analytics and monitoring middleware
+app.use(trackAPIUsage);
+app.use(monitorPerformance);
 app.use(rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
@@ -93,6 +99,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', optionalAuth, researchRoutes);
 app.use('/api/batch', optionalAuth, batchRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -227,7 +234,8 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Error handler
+// Error handler with analytics tracking
+app.use(trackError);
 app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);
     res.status(500).json({
