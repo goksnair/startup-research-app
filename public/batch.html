@@ -377,7 +377,7 @@
 
         // Setup event listeners
         function setupEventListeners() {
-            document.getElementById('batchForm').addEventListener('submit', createBatch);
+            document.getElementById('batchForm').addEventListener('submit', createBatchWithTracking);
             document.getElementById('refreshBatches').addEventListener('click', loadUserBatches);
         }
 
@@ -468,6 +468,13 @@
 
                 if (result.success) {
                     displayBatches(result.data.batches);
+                    
+                    // Start progress tracking for active batches
+                    result.data.batches.forEach(batch => {
+                        if (batch.status === 'processing' || batch.status === 'queued') {
+                            startProgressTracking(batch.id);
+                        }
+                    });
                 } else {
                     document.getElementById('batchList').innerHTML = '<p>❌ Failed to load batches</p>';
                 }
@@ -488,29 +495,30 @@
             }
 
             batchList.innerHTML = batches.map(batch => `
-                <div class="batch-item">
+                <div class="batch-item" data-batch-id="${batch.id}">
                     <div class="batch-header">
                         <span class="batch-id">${batch.id.substring(0, 8)}...</span>
                         <span class="batch-status status-${batch.status}">${batch.status.toUpperCase()}</span>
                     </div>
                     
-                    ${batch.status === 'processing' ? `
+                    ${batch.status === 'processing' || batch.status === 'queued' ? `
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${(batch.processedCompanies / batch.totalCompanies) * 100}%"></div>
+                            <div class="progress-fill" style="width: ${batch.processedCompanies ? (batch.processedCompanies / batch.totalCompanies) * 100 : 0}%"></div>
                         </div>
+                        <div class="time-remaining">⏱️ ${batch.estimatedTimeRemaining || 'Calculating...'}</div>
                     ` : ''}
                     
                     <div class="batch-stats">
                         <div class="stat-item">
-                            <div class="stat-value">${batch.totalCompanies}</div>
-                            <div class="stat-label">Total</div>
+                            <div class="stat-value processed-count">${batch.processedCompanies || 0}/${batch.totalCompanies}</div>
+                            <div class="stat-label">Progress</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value">${batch.successCount || 0}</div>
+                            <div class="stat-value success-count">${batch.successCount || 0}</div>
                             <div class="stat-label">Success</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value">${batch.errorCount || 0}</div>
+                            <div class="stat-value error-count">${batch.errorCount || 0}</div>
                             <div class="stat-label">Errors</div>
                         </div>
                         ${batch.duration ? `
@@ -648,11 +656,181 @@
             }
         }
 
+        // Real-time progress tracking using Server-Sent Events
+        let progressEventSources = new Map();
+
+        function startProgressTracking(batchId) {
+            // Close existing connection if any
+            if (progressEventSources.has(batchId)) {
+                progressEventSources.get(batchId).close();
+            }
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.log('No auth token available for progress tracking');
+                return;
+            }
+
+            const eventSource = new EventSource(`/api/batch/${batchId}/progress`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    updateBatchProgress(data);
+                } catch (error) {
+                    console.error('Error parsing progress data:', error);
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                console.log('Progress tracking connection error:', error);
+                // Try to reconnect after 5 seconds
+                setTimeout(() => {
+                    if (eventSource.readyState === EventSource.CLOSED) {
+                        startProgressTracking(batchId);
+                    }
+                }, 5000);
+            };
+
+            eventSource.addEventListener('complete', function(event) {
+                const data = JSON.parse(event.data);
+                console.log(`Batch ${data.batchId} completed with status: ${data.finalStatus}`);
+                eventSource.close();
+                progressEventSources.delete(batchId);
+                // Refresh the batch list to show final results
+                loadUserBatches();
+            });
+
+            eventSource.addEventListener('error', function(event) {
+                const data = JSON.parse(event.data);
+                console.error(`Batch ${data.batchId} error:`, data.error);
+                eventSource.close();
+                progressEventSources.delete(batchId);
+                loadUserBatches();
+            });
+
+            progressEventSources.set(batchId, eventSource);
+        }
+
+        function updateBatchProgress(data) {
+            // Find the batch element and update its progress
+            const batchElement = document.querySelector(`[data-batch-id="${data.batchId}"]`);
+            if (batchElement) {
+                // Update progress bar
+                const progressFill = batchElement.querySelector('.progress-fill');
+                if (progressFill) {
+                    progressFill.style.width = `${data.progress}%`;
+                }
+
+                // Update status
+                const statusElement = batchElement.querySelector('.batch-status');
+                if (statusElement) {
+                    statusElement.textContent = data.status.toUpperCase();
+                    statusElement.className = `batch-status status-${data.status}`;
+                }
+
+                // Update stats
+                const successStat = batchElement.querySelector('.success-count');
+                const errorStat = batchElement.querySelector('.error-count');
+                const processedStat = batchElement.querySelector('.processed-count');
+                
+                if (successStat) successStat.textContent = data.successCount || 0;
+                if (errorStat) errorStat.textContent = data.errorCount || 0;
+                if (processedStat) processedStat.textContent = `${data.processedCompanies}/${data.totalCompanies}`;
+
+                // Update estimated time remaining
+                const timeRemaining = batchElement.querySelector('.time-remaining');
+                if (timeRemaining && data.estimatedTimeRemaining) {
+                    timeRemaining.textContent = `⏱️ ${data.estimatedTimeRemaining} remaining`;
+                }
+            }
+        }
+
+        function stopProgressTracking(batchId) {
+            if (progressEventSources.has(batchId)) {
+                progressEventSources.get(batchId).close();
+                progressEventSources.delete(batchId);
+            }
+        }
+
+        function stopAllProgressTracking() {
+            progressEventSources.forEach((eventSource, batchId) => {
+                eventSource.close();
+            });
+            progressEventSources.clear();
+        }
+
+        // Enhanced batch creation with automatic progress tracking
+        async function createBatchWithTracking(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const companies = formData.get('companies').split('\n')
+                .map(c => c.trim())
+                .filter(c => c.length > 0);
+
+            if (companies.length === 0) {
+                alert('Please enter at least one company name');
+                return;
+            }
+
+            if (companies.length > 50) {
+                alert('Maximum 50 companies allowed per batch');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/batch/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({
+                        companies,
+                        analysisType: formData.get('analysisType') || 'comprehensive',
+                        includePdf: formData.get('includePdf') === 'on',
+                        sendEmail: formData.get('sendEmail') === 'on',
+                        priority: formData.get('priority') || 'normal'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Batch created successfully!\nBatch ID: ${result.data.batchId}\nEstimated time: ${result.data.estimatedTime}`);
+                    
+                    // Clear form
+                    event.target.reset();
+                    
+                    // Refresh batch list
+                    await loadUserBatches();
+                    
+                    // Start real-time progress tracking
+                    setTimeout(() => {
+                        startProgressTracking(result.data.batchId);
+                    }, 1000);
+                    
+                } else {
+                    alert(`❌ Failed to create batch:\n${result.message || result.error}`);
+                }
+            } catch (error) {
+                console.error('Create batch error:', error);
+                alert('❌ Network error. Please try again.');
+            }
+        }
+
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
             }
+            stopAllProgressTracking();
         });
     </script>
 </body>

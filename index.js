@@ -15,7 +15,8 @@ const OpenAI = require('openai');
 // Import routes and middleware
 const authRoutes = require('./routes/auth');
 const researchRoutes = require('./routes/research');
-const batchRoutes = require('./routes/batch-test');
+const batchRoutes = require('./routes/batch');
+const reportsRoutes = require('./routes/reports');
 const { optionalAuth } = require('./middleware/auth');
 
 const app = express();
@@ -23,6 +24,17 @@ const app = express();
 // Environment configuration
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Initialize batch processing workers (only in production or when Redis is available)
+if (NODE_ENV === 'production' || process.env.REDIS_URL) {
+    try {
+        require('./jobs/batchProcessor');
+        require('./jobs/reportProcessor');
+        console.log('✅ Batch and report processing workers initialized');
+    } catch (error) {
+        console.log('📝 Processing workers not available:', error.message);
+    }
+}
 
 // OpenAI configuration
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -80,6 +92,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', optionalAuth, researchRoutes);
 app.use('/api/batch', optionalAuth, batchRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const auth = require('../middleware/auth');
+const { authenticateToken: auth } = require('../middleware/auth');
 const batchService = require('../services/batchService');
 const { getQueueStats } = require('../services/queueService');
 
@@ -183,6 +183,100 @@ router.get('/admin/queue-stats', auth, async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to get queue statistics',
+            message: error.message
+        });
+    }
+});
+
+// Real-time batch progress endpoint (Server-Sent Events)
+router.get('/:batchId/progress', auth, async (req, res) => {
+    try {
+        const { batchId } = req.params;
+        const userId = req.user.id;
+
+        // Verify batch ownership
+        const batchStatus = await batchService.getBatchStatus(batchId, userId);
+        if (!batchStatus) {
+            return res.status(404).json({
+                success: false,
+                error: 'Batch not found'
+            });
+        }
+
+        // Set up Server-Sent Events
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Cache-Control'
+        });
+
+        // Send initial status
+        const sendUpdate = (data) => {
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        };
+
+        sendUpdate({
+            type: 'status',
+            batchId,
+            ...batchStatus,
+            timestamp: new Date().toISOString()
+        });
+
+        // Set up periodic status checks
+        const interval = setInterval(async () => {
+            try {
+                const currentStatus = await batchService.getBatchStatus(batchId, userId);
+                
+                sendUpdate({
+                    type: 'progress',
+                    batchId,
+                    ...currentStatus,
+                    timestamp: new Date().toISOString()
+                });
+
+                // Stop if batch is completed or failed
+                if (['completed', 'failed', 'cancelled'].includes(currentStatus.status)) {
+                    sendUpdate({
+                        type: 'complete',
+                        batchId,
+                        finalStatus: currentStatus.status,
+                        timestamp: new Date().toISOString()
+                    });
+                    clearInterval(interval);
+                    res.end();
+                }
+
+            } catch (error) {
+                console.error('Progress update error:', error);
+                sendUpdate({
+                    type: 'error',
+                    batchId,
+                    error: error.message,
+                    timestamp: new Date().toISOString()
+                });
+                clearInterval(interval);
+                res.end();
+            }
+        }, 2000); // Update every 2 seconds
+
+        // Clean up on client disconnect
+        req.on('close', () => {
+            clearInterval(interval);
+            res.end();
+        });
+
+        req.on('aborted', () => {
+            clearInterval(interval);
+            res.end();
+        });
+
+    } catch (error) {
+        console.error('Progress endpoint error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to start progress tracking',
             message: error.message
         });
     }

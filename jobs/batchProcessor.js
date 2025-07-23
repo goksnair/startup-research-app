@@ -1,9 +1,9 @@
-const { batchQueue } = require('../services/queueService');
+const { batchQueue, memoryQueue } = require('../services/queueService');
 const analysisService = require('../services/analysisService');
 const supabase = require('../database/supabase');
 
-// Process batch job
-batchQueue.process('process-batch', async (job) => {
+// Enhanced batch processor that works with both Redis and Memory queues
+const processBatchJob = async (job) => {
     const batchData = job.data;
     const { id: batchId, companies, user_id: userId, options } = batchData;
 
@@ -45,8 +45,13 @@ batchQueue.process('process-batch', async (job) => {
                     errors: JSON.stringify(errors)
                 });
 
-                // Update job progress
-                job.progress(Math.round((processedCount / companies.length) * 100));
+                // Update job progress (works for both Redis and Memory queues)
+                const progressPercent = Math.round((processedCount / companies.length) * 100);
+                if (job.progress) {
+                    job.progress(progressPercent);
+                } else if (memoryQueue && job.id) {
+                    memoryQueue.updateProgress(job.id, progressPercent);
+                }
 
                 console.log(`  ✅ Analysis completed for ${companyName}`);
 
@@ -106,7 +111,7 @@ batchQueue.process('process-batch', async (job) => {
         console.log(`🎉 Batch ${batchId} completed: ${results.length} successful, ${errors.length} failed`);
 
         // Trigger post-processing tasks
-        await triggerPostProcessing(batchId, userId, options, results, comparativeAnalysis);
+        await triggerPostProcessing(batchId, userId, options, results, comparativeAnalysis, companies, batchData);
 
         return {
             batchId,
@@ -130,7 +135,12 @@ batchQueue.process('process-batch', async (job) => {
 
         throw error;
     }
-});
+};
+
+// Register the batch processor with the queue system
+batchQueue.process('process-batch', processBatchJob);
+
+console.log('🔄 Batch processing worker started');
 
 // Update batch status in database
 async function updateBatchStatus(batchId, updates) {
@@ -165,7 +175,7 @@ async function updateBatchProgress(batchId, updates) {
 }
 
 // Trigger post-processing tasks (PDF generation, email notifications)
-async function triggerPostProcessing(batchId, userId, options, results, comparativeAnalysis) {
+async function triggerPostProcessing(batchId, userId, options, results, comparativeAnalysis, companies, batchData) {
     try {
         // Generate PDF report if requested
         if (options.include_pdf && results.length > 0) {
@@ -175,19 +185,22 @@ async function triggerPostProcessing(batchId, userId, options, results, comparat
                 userId,
                 results,
                 comparativeAnalysis,
-                reportType: results.length > 1 ? 'comparative' : 'standard'
+                reportType: results.length > 1 ? 'comparative' : 'standard',
+                options
             });
             console.log(`📄 PDF generation queued for batch ${batchId}`);
         }
 
-        // Send email notification if requested
+        // Send email notification if requested  
         if (options.send_email) {
             const { emailQueue } = require('../services/queueService');
             await emailQueue.add('batch-complete', {
                 batchId,
                 userId,
-                companiesProcessed: results.length,
-                hasErrors: results.length < options.totalCompanies,
+                companiesCount: companies.length,
+                successCount: results.length,
+                failureCount: companies.length - results.length,
+                processingTime: Date.now() - new Date(batchData.created_at).getTime(),
                 includePdf: options.include_pdf
             });
             console.log(`📧 Email notification queued for batch ${batchId}`);

@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { batchQueue } = require('./queueService');
+const { batchQueue, redisAvailable, memoryQueueAvailable, memoryQueue } = require('./queueService');
 const supabase = require('../database/supabase');
 const analysisService = require('./analysisService');
 
@@ -63,25 +63,29 @@ class BatchService {
                 throw new Error(`Database error: ${dbError.message}`);
             }
 
-            // Add job to queue
+            // Add job to queue system (Redis or enhanced memory)
             const jobOptions = {
                 delay: 0,
                 attempts: 3,
-                backoff: {
-                    type: 'exponential',
-                    delay: 2000
-                },
-                removeOnComplete: 10,
-                removeOnFail: 5
+                priority: options.priority === 'high' ? 10 : options.priority === 'low' ? -10 : 0
             };
 
-            if (options.priority === 'high') {
-                jobOptions.priority = 10;
-            } else if (options.priority === 'low') {
-                jobOptions.priority = -10;
+            if (redisAvailable()) {
+                // Redis Bull queue
+                jobOptions.backoff = {
+                    type: 'exponential',
+                    delay: 2000
+                };
+                jobOptions.removeOnComplete = 10;
+                jobOptions.removeOnFail = 5;
+                
+                await batchQueue.add('process-batch', batchData, jobOptions);
+                console.log(`📦 Batch ${batchId} added to Redis queue`);
+            } else {
+                // Enhanced memory queue
+                await batchQueue.add('process-batch', batchData, jobOptions);
+                console.log(`📦 Batch ${batchId} added to memory queue`);
             }
-
-            await batchQueue.add('process-batch', batchData, jobOptions);
 
             console.log(`📦 Batch ${batchId} created with ${companies.length} companies`);
 
@@ -243,6 +247,119 @@ class BatchService {
             return `${remainingSeconds} seconds`;
         } else {
             return `${Math.round(remainingSeconds / 60)} minutes`;
+        }
+    }
+
+    // Process batch in-memory (for development without Redis)
+    async processInMemoryBatch(batchId) {
+        try {
+            console.log(`🔄 Starting in-memory processing for batch ${batchId}`);
+            
+            const batchData = this.processingBatches.get(batchId);
+            if (!batchData) {
+                console.error(`❌ Batch ${batchId} not found in memory`);
+                return;
+            }
+
+            // Update status to processing
+            await supabase
+                .from('batch_jobs')
+                .update({
+                    status: 'processing',
+                    started_at: new Date().toISOString()
+                })
+                .eq('id', batchId);
+
+            const results = [];
+            const errors = [];
+            let processedCount = 0;
+            let successCount = 0;
+
+            for (const company of batchData.companies) {
+                try {
+                    console.log(`🔍 Processing company: ${company.name || company}`);
+                    
+                    // Simulate processing (in real implementation, call analysis service)
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+                    
+                    const result = {
+                        company: company.name || company,
+                        status: 'completed',
+                        analysis: `Sample analysis for ${company.name || company}`,
+                        processedAt: new Date().toISOString()
+                    };
+                    
+                    results.push(result);
+                    successCount++;
+                    processedCount++;
+
+                    // Update progress in database
+                    await supabase
+                        .from('batch_jobs')
+                        .update({
+                            processed_companies: processedCount,
+                            success_count: successCount,
+                            results: JSON.stringify(results)
+                        })
+                        .eq('id', batchId);
+
+                } catch (error) {
+                    console.error(`❌ Error processing ${company.name || company}:`, error);
+                    errors.push({
+                        company: company.name || company,
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    });
+                    processedCount++;
+
+                    // Update progress with error
+                    await supabase
+                        .from('batch_jobs')
+                        .update({
+                            processed_companies: processedCount,
+                            error_count: errors.length,
+                            errors: JSON.stringify(errors)
+                        })
+                        .eq('id', batchId);
+                }
+            }
+
+            // Mark as completed
+            await supabase
+                .from('batch_jobs')
+                .update({
+                    status: 'completed',
+                    completed_at: new Date().toISOString(),
+                    processed_companies: processedCount,
+                    success_count: successCount,
+                    error_count: errors.length,
+                    results: JSON.stringify(results),
+                    errors: JSON.stringify(errors)
+                })
+                .eq('id', batchId);
+
+            // Remove from memory
+            this.processingBatches.delete(batchId);
+            
+            console.log(`✅ Batch ${batchId} completed: ${successCount} successes, ${errors.length} errors`);
+
+        } catch (error) {
+            console.error(`❌ In-memory batch processing failed for ${batchId}:`, error);
+            
+            // Mark as failed
+            await supabase
+                .from('batch_jobs')
+                .update({
+                    status: 'failed',
+                    completed_at: new Date().toISOString(),
+                    errors: JSON.stringify([{
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    }])
+                })
+                .eq('id', batchId);
+
+            this.processingBatches.delete(batchId);
         }
     }
 

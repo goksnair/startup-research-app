@@ -12,6 +12,13 @@
       "dest": "index.js"
     },
     {
+      "src": "/api/batch/(.*)",
+      "dest": "index.js",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
       "src": "/api/auth/(.*)",
       "dest": "index.js"
     },
@@ -22,6 +29,10 @@
     {
       "src": "/api/(.*)",
       "dest": "index.js"
+    },
+    {
+      "src": "/batch.html",
+      "dest": "public/batch.html"
     },
     {
       "src": "/index-auth.html",
