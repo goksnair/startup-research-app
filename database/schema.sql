@@ -182,6 +182,37 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Webhooks table (for enterprise webhook notifications)
+CREATE TABLE IF NOT EXISTS webhooks (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    events JSONB DEFAULT '[]', -- Array of event names to subscribe to
+    signing_secret VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Webhook deliveries table (for tracking webhook delivery status)
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    webhook_id UUID REFERENCES webhooks(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    event_type VARCHAR(100) NOT NULL,
+    payload JSONB NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'delivered', 'failed')),
+    response_status INTEGER,
+    response_headers JSONB,
+    response_body TEXT,
+    response_time_ms INTEGER,
+    attempt_count INTEGER DEFAULT 0,
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
 -- PostgreSQL-style indexes (created after tables)
 -- Research queries indexes
 CREATE INDEX IF NOT EXISTS idx_research_user_id ON research_queries (user_id);

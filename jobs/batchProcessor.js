@@ -2,6 +2,7 @@ const { batchQueue, memoryQueue } = require('../services/queueService');
 const analysisService = require('../services/analysisService');
 const supabase = require('../database/supabase');
 const { trackBatchOperation } = require('../middleware/analytics');
+const webhookService = require('../services/webhookService');
 
 // Enhanced batch processor that works with both Redis and Memory queues
 const processBatchJob = async (job) => {
@@ -123,6 +124,21 @@ const processBatchJob = async (job) => {
 
         // Trigger post-processing tasks
         await triggerPostProcessing(batchId, userId, options, results, comparativeAnalysis, companies, batchData);
+
+        // Send webhook notification for completed batch
+        try {
+            await webhookService.sendBatchCompletedWebhook(userId, {
+                id: batchId,
+                status: finalStatus,
+                companies,
+                success_count: results.length,
+                error_count: errors.length,
+                completed_at: new Date().toISOString(),
+                results: finalStatus === 'completed' ? results : null
+            });
+        } catch (webhookError) {
+            console.error('Webhook notification failed:', webhookError);
+        }
 
         return {
             batchId,

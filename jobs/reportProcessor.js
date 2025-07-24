@@ -3,6 +3,7 @@ const pdfService = require('../services/pdfService');
 const emailService = require('../services/emailService');
 const supabase = require('../database/supabase');
 const { trackPDFGeneration, trackEmailNotification } = require('../middleware/analytics');
+const webhookService = require('../services/webhookService');
 
 // PDF Report Generation Processor
 const generatePDFReport = async (job) => {
@@ -116,6 +117,19 @@ const generatePDFReport = async (job) => {
         });
 
         console.log(`✅ PDF report generated successfully: ${reportResult.fileName}`);
+
+        // Send webhook notification for report generation
+        try {
+            await webhookService.sendReportGeneratedWebhook(userId, {
+                id: reportRecord.id,
+                report_type: reportType,
+                file_name: reportResult.fileName,
+                companies: reportResult.companies,
+                generated_at: reportResult.generatedAt
+            });
+        } catch (webhookError) {
+            console.error('Report webhook notification failed:', webhookError);
+        }
 
         return {
             success: true,

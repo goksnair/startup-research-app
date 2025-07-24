@@ -18,6 +18,10 @@ const researchRoutes = require('./routes/research');
 const batchRoutes = require('./routes/batch');
 const reportsRoutes = require('./routes/reports');
 const analyticsRoutes = require('./routes/analytics');
+const apiKeysRoutes = require('./routes/apiKeys');
+const webhooksRoutes = require('./routes/webhooks');
+const publicApiRoutes = require('./routes/publicApi');
+const { router: swaggerRouter } = require('./routes/swagger');
 const { optionalAuth } = require('./middleware/auth');
 const { trackAPIUsage, monitorPerformance, trackError } = require('./middleware/analytics');
 
@@ -100,6 +104,14 @@ app.use('/api/user', optionalAuth, researchRoutes);
 app.use('/api/batch', optionalAuth, batchRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/keys', apiKeysRoutes);
+app.use('/api/webhooks', webhooksRoutes);
+
+// Public API routes (v1)
+app.use('/api/v1', publicApiRoutes);
+
+// API documentation
+app.use('/api', swaggerRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
