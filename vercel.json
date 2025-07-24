@@ -43,6 +43,10 @@
       "dest": "public/admin.html"
     },
     {
+      "src": "/test.html",
+      "dest": "public/test.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "public/index.html"
     }
