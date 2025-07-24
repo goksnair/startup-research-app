@@ -260,6 +260,32 @@ app.get('/api/ui/auth', (req, res) => {
     res.sendFile(filePath);
 });
 
+// Additional UI bypass routes with different paths
+app.get('/dev/dashboard', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'dashboard.html');
+    res.sendFile(filePath);
+});
+
+app.get('/dev/batch', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'batch.html');
+    res.sendFile(filePath);
+});
+
+app.get('/dev/admin', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'admin.html');
+    res.sendFile(filePath);
+});
+
+app.get('/dev/auth', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'index-auth.html');
+    res.sendFile(filePath);
+});
+
+app.get('/dev/test', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'test.html');
+    res.sendFile(filePath);
+});
+
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 

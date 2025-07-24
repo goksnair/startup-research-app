@@ -7,76 +7,49 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/health",
-      "dest": "index.js"
+      "source": "/dev/(.*)",
+      "destination": "/index.js"
     },
     {
-      "src": "/api/ui/(.*)",
-      "dest": "index.js",
-      "headers": {
-        "Cache-Control": "public, max-age=300"
-      }
+      "source": "/api/ui/(.*)",
+      "destination": "/index.js"
     },
     {
-      "src": "/api/batch/(.*)",
-      "dest": "index.js",
-      "headers": {
-        "Cache-Control": "no-cache"
-      }
+      "source": "/api/batch/(.*)",
+      "destination": "/index.js"
     },
     {
-      "src": "/api/auth/(.*)",
-      "dest": "index.js"
+      "source": "/api/auth/(.*)",
+      "destination": "/index.js"
     },
     {
-      "src": "/api/user/(.*)",
-      "dest": "index.js"
+      "source": "/api/user/(.*)",
+      "destination": "/index.js"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "index.js"
+      "source": "/api/(.*)",
+      "destination": "/index.js"
     },
     {
-      "src": "/dashboard.html",
-      "dest": "public/dashboard.html",
-      "headers": {
-        "Cache-Control": "public, max-age=0"
-      }
-    },
+      "source": "/health",
+      "destination": "/index.js"
+    }
+  ],
+  "headers": [
     {
-      "src": "/batch.html",
-      "dest": "public/batch.html",
-      "headers": {
-        "X-Frame-Options": "DENY",
-        "Cache-Control": "public, max-age=0"
-      }
-    },
-    {
-      "src": "/index-auth.html",
-      "dest": "public/index-auth.html",
-      "headers": {
-        "Cache-Control": "public, max-age=0"
-      }
-    },
-    {
-      "src": "/admin.html",
-      "dest": "public/admin.html",
-      "headers": {
-        "Cache-Control": "public, max-age=0"
-      }
-    },
-    {
-      "src": "/test.html",
-      "dest": "public/test.html",
-      "headers": {
-        "Cache-Control": "public, max-age=0"
-      }
-    },
-    {
-      "src": "/(.*)",
-      "dest": "public/index.html"
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Vercel-No-Authentication",
+          "value": "1"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0"
+        }
+      ]
     }
   ],
   "env": {

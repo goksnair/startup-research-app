@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -52,14 +53,14 @@
             background: white;
             border-radius: 15px;
             padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             text-align: center;
         }
 
         .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
         }
 
         .feature-icon {
@@ -99,7 +100,7 @@
         }
 
         .auth-section {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
             padding: 30px;
             margin-bottom: 30px;
@@ -134,7 +135,7 @@
         }
 
         .stat-card {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 20px;
             color: white;
@@ -156,15 +157,15 @@
             .container {
                 padding: 10px;
             }
-            
+
             .feature-card {
                 padding: 20px;
             }
-            
+
             .header h1 {
                 font-size: 2rem;
             }
-            
+
             .dashboard-grid {
                 grid-template-columns: 1fr;
                 gap: 20px;
@@ -172,6 +173,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header class="header">
@@ -201,14 +203,16 @@
             <div class="feature-card" id="batchCard">
                 <div class="feature-icon">⚡</div>
                 <h3>Batch Processing</h3>
-                <p>Analyze multiple companies at once with our powerful batch processing system and real-time progress tracking.</p>
+                <p>Analyze multiple companies at once with our powerful batch processing system and real-time progress
+                    tracking.</p>
                 <a href="/batch.html" class="btn" id="batchBtn">Access Batch Processing</a>
             </div>
 
             <div class="feature-card" id="adminCard">
                 <div class="feature-icon">📊</div>
                 <h3>Admin Dashboard</h3>
-                <p>Monitor system performance, user analytics, and manage platform operations with advanced insights.</p>
+                <p>Monitor system performance, user analytics, and manage platform operations with advanced insights.
+                </p>
                 <a href="/admin.html" class="btn" id="adminBtn">Admin Dashboard</a>
             </div>
 
@@ -222,7 +226,8 @@
             <div class="feature-card" id="reportsCard">
                 <div class="feature-icon">📄</div>
                 <h3>PDF Reports</h3>
-                <p>Generate professional PDF reports from your research data with custom templates and email delivery.</p>
+                <p>Generate professional PDF reports from your research data with custom templates and email delivery.
+                </p>
                 <a href="/index-auth.html" class="btn" id="reportsBtn">Generate Reports</a>
             </div>
 
@@ -258,7 +263,7 @@
         // Check authentication status
         async function checkAuthStatus() {
             const token = localStorage.getItem('token');
-            
+
             if (token) {
                 try {
                     const response = await fetch('/api/user/profile', {
@@ -266,7 +271,7 @@
                             'Authorization': `Bearer ${token}`
                         }
                     });
-                    
+
                     if (response.ok) {
                         const user = await response.json();
                         showAuthenticatedUI(user);
@@ -288,7 +293,7 @@
                 <span class="status-badge status-authenticated">Welcome, ${user.name}!</span>
                 <p>Subscription: ${user.subscription_tier}</p>
             `;
-            
+
             document.getElementById('loginSection').innerHTML = `
                 <p>You have access to all features based on your subscription tier.</p>
                 <button class="btn" onclick="logout()">Logout</button>
@@ -296,7 +301,7 @@
 
             // Show stats section
             document.getElementById('statsSection').style.display = 'grid';
-            
+
             // Enable all feature cards
             enableFeatureAccess();
         }
@@ -305,7 +310,7 @@
             document.getElementById('authStatus').innerHTML = `
                 <span class="status-badge status-guest">Not Authenticated</span>
             `;
-            
+
             document.getElementById('loginSection').innerHTML = `
                 <p>Login to access batch processing, admin dashboard, and API features.</p>
                 <a href="/index-auth.html" class="btn">Go to Login</a>
@@ -341,14 +346,14 @@
 
         async function loadUserStats() {
             const token = localStorage.getItem('token');
-            
+
             try {
                 const response = await fetch('/api/user/stats', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                
+
                 if (response.ok) {
                     const stats = await response.json();
                     document.getElementById('totalQueries').textContent = stats.total_queries || 0;
@@ -371,4 +376,5 @@
         document.addEventListener('DOMContentLoaded', checkAuthStatus);
     </script>
 </body>
+
 </html>
