@@ -1,0 +1,11 @@
+node_modules
+.env.local
+.env.example
+.git
+.vercel
+*.log
+.DS_Store
+coverage/
+.nyc_output/
+backup-logs/
+context-history/

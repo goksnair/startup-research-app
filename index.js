@@ -28,6 +28,9 @@ const { trackAPIUsage, monitorPerformance, trackError } = require('./middleware/
 
 const app = express();
 
+// Trust proxy for Railway deployment (fixes rate limiting issues)
+app.set('trust proxy', true);
+
 // Environment configuration
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -70,7 +73,7 @@ app.use(helmet({
 // CORS configuration
 app.use(cors({
     origin: NODE_ENV === 'production'
-        ? ['https://startup-research-clean.vercel.app', 'https://startup-research-clean-bp0k8iv94-gokuls-projects-199eba9b.vercel.app']
+        ? ['https://startup-research-clean.vercel.app', 'https://startup-research-clean-bp0k8iv94-gokuls-projects-199eba9b.vercel.app', 'https://startupresearchapp-production.up.railway.app']
         : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true
 }));
@@ -121,6 +124,37 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         version: '1.0.0-mvp',
         environment: NODE_ENV
+    });
+});
+
+// API status endpoint
+app.get('/api/status', (req, res) => {
+    res.json({
+        status: 'running',
+        service: 'Startup Research API',
+        version: '2.0.0',
+        timestamp: new Date().toISOString(),
+        environment: NODE_ENV,
+        features: {
+            openai: !!openai,
+            supabase: !!supabase,
+            authentication: true,
+            batchProcessing: true,
+            pdfReports: true,
+            apiKeys: true,
+            webhooks: true
+        },
+        endpoints: {
+            auth: '/api/auth/*',
+            research: '/api/research',
+            batch: '/api/batch/*',
+            reports: '/api/reports/*',
+            analytics: '/api/analytics/*',
+            apiKeys: '/api/keys/*',
+            webhooks: '/api/webhooks/*',
+            publicApi: '/api/v1/*',
+            documentation: '/api/docs'
+        }
     });
 });
 
