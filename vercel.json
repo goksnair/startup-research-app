@@ -31,20 +31,40 @@
       "dest": "index.js"
     },
     {
+      "src": "/dashboard.html",
+      "dest": "public/dashboard.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0"
+      }
+    },
+    {
       "src": "/batch.html",
-      "dest": "public/batch.html"
+      "dest": "public/batch.html",
+      "headers": {
+        "X-Frame-Options": "DENY",
+        "Cache-Control": "public, max-age=0"
+      }
     },
     {
       "src": "/index-auth.html",
-      "dest": "public/index-auth.html"
+      "dest": "public/index-auth.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0"
+      }
     },
     {
       "src": "/admin.html",
-      "dest": "public/admin.html"
+      "dest": "public/admin.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0"
+      }
     },
     {
       "src": "/test.html",
-      "dest": "public/test.html"
+      "dest": "public/test.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0"
+      }
     },
     {
       "src": "/(.*)",
