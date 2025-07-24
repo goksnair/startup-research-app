@@ -11,6 +11,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
+const fs = require('fs');
 
 // Import routes and middleware
 const authRoutes = require('./routes/auth');
@@ -236,6 +237,27 @@ app.post('/api/research', optionalAuth, async (req, res) => {
             message: NODE_ENV === 'development' ? error.message : 'Internal server error'
         });
     }
+});
+
+// API endpoints to serve HTML content (bypass Vercel auth)
+app.get('/api/ui/dashboard', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'dashboard.html');
+    res.sendFile(filePath);
+});
+
+app.get('/api/ui/batch', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'batch.html');
+    res.sendFile(filePath);
+});
+
+app.get('/api/ui/admin', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'admin.html');
+    res.sendFile(filePath);
+});
+
+app.get('/api/ui/auth', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'index-auth.html');
+    res.sendFile(filePath);
 });
 
 // Serve static files

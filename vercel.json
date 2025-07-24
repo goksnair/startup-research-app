@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "public": true,
   "builds": [
     {
       "src": "index.js",
@@ -10,6 +11,13 @@
     {
       "src": "/health",
       "dest": "index.js"
+    },
+    {
+      "src": "/api/ui/(.*)",
+      "dest": "index.js",
+      "headers": {
+        "Cache-Control": "public, max-age=300"
+      }
     },
     {
       "src": "/api/batch/(.*)",
