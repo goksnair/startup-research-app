@@ -69,7 +69,7 @@ app.use(helmet({
 // CORS configuration
 app.use(cors({
     origin: NODE_ENV === 'production'
-        ? ['https://startup-research-app.vercel.app']
+        ? ['https://startup-research-clean.vercel.app', 'https://startup-research-clean-bp0k8iv94-gokuls-projects-199eba9b.vercel.app']
         : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true
 }));

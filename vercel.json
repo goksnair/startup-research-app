@@ -39,6 +39,10 @@
       "dest": "public/index-auth.html"
     },
     {
+      "src": "/admin.html",
+      "dest": "public/admin.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "public/index.html"
     }
