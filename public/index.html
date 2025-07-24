@@ -270,6 +270,7 @@
         </div>
     </div>
 
+    <script src="/js/disambiguation.js"></script>
     <script>
         document.getElementById('researchForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -285,6 +286,7 @@
             document.getElementById('submitBtn').textContent = 'Analyzing...';
             
             try {
+                // Use disambiguation-aware analysis
                 const response = await fetch('/api/research', {
                     method: 'POST',
                     headers: {
@@ -292,27 +294,63 @@
                     },
                     body: JSON.stringify({
                         company,
-                        analysis_type: analysisType,
+                        analysisType: analysisType,
                         query
                     })
                 });
                 
                 const data = await response.json();
                 
-                if (response.ok) {
-                    // Show results
+                // Handle disambiguation requirement
+                if (data.success && data.requiresDisambiguation) {
+                    console.log('Company requires disambiguation');
                     document.getElementById('loading').style.display = 'none';
-                    document.getElementById('results').style.display = 'block';
+                    document.getElementById('submitBtn').disabled = false;
+                    document.getElementById('submitBtn').textContent = 'Analyze Company';
                     
-                    document.getElementById('resultTitle').innerHTML = 
-                        `Analysis Results for ${data.company} <span id="statusBadge" class="status-badge status-${data.status}">${data.status}</span>`;
-                    document.getElementById('analysisContent').textContent = data.data.analysis;
-                    document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
-                    document.getElementById('analysisTypeResult').textContent = data.analysis_type;
-                    document.getElementById('model').textContent = data.data.model || 'N/A';
+                    // Show disambiguation modal
+                    const modal = new DisambiguationModal();
+                    const userChoice = await modal.show(data.data);
                     
-                    // Scroll to results
-                    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                    // Restart analysis with disambiguation choice
+                    document.getElementById('loading').style.display = 'block';
+                    document.getElementById('submitBtn').disabled = true;
+                    document.getElementById('submitBtn').textContent = 'Analyzing...';
+                    
+                    let analysisPayload = {
+                        company,
+                        analysisType: analysisType,
+                        query
+                    };
+                    
+                    if (userChoice.type === 'company_selected') {
+                        analysisPayload.companyId = userChoice.company.id;
+                        analysisPayload.candidates = data.data.candidates;
+                        analysisPayload.disambiguationAnswers = userChoice.answers;
+                    } else {
+                        analysisPayload.skipDisambiguation = true;
+                    }
+                    
+                    const finalResponse = await fetch('/api/research', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(analysisPayload)
+                    });
+                    
+                    const finalData = await finalResponse.json();
+                    
+                    if (finalResponse.ok) {
+                        displayResults(finalData);
+                    } else {
+                        throw new Error(finalData.error || 'Analysis failed');
+                    }
+                    return;
+                }
+                
+                if (response.ok) {
+                    displayResults(data);
                 } else {
                     throw new Error(data.error || 'Analysis failed');
                 }
@@ -337,6 +375,61 @@
             }
         });
         
+        // Helper function to display results
+        function displayResults(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            
+            const companyName = data.data?.company || data.company;
+            const status = data.status || (data.success ? 'completed' : 'error');
+            
+            // Show disambiguation info if used
+            let titleText = `Analysis Results for ${companyName}`;
+            if (data.data?.originalQuery && data.data.originalQuery !== companyName) {
+                titleText = `Analysis Results for ${companyName} (searched: "${data.data.originalQuery}")`;
+            }
+            
+            document.getElementById('resultTitle').innerHTML = 
+                `${titleText} <span id="statusBadge" class="status-badge status-${status}">${status}</span>`;
+            
+            document.getElementById('analysisContent').textContent = data.data?.analysis || data.analysis;
+            document.getElementById('timestamp').textContent = new Date(data.data?.timestamp || data.timestamp).toLocaleString();
+            document.getElementById('analysisTypeResult').textContent = data.data?.analysisType || data.analysis_type;
+            document.getElementById('model').textContent = data.data?.metadata?.model || data.data?.model || 'N/A';
+            
+            // Add disambiguation info if available
+            if (data.data?.disambiguationUsed) {
+                const existingInfo = document.querySelector('.disambiguation-info');
+                if (existingInfo) existingInfo.remove();
+                
+                const disambiguationInfo = document.createElement('div');
+                disambiguationInfo.className = 'disambiguation-info';
+                disambiguationInfo.style.cssText = `
+                    background: #e8f4f8;
+                    border: 1px solid #bee5eb;
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-bottom: 20px;
+                    font-size: 14px;
+                    color: #0c5460;
+                `;
+                
+                let infoText = '✅ Company successfully identified and verified';
+                if (data.data.resolvedCompany?.confidence) {
+                    infoText += ` (${Math.round(data.data.resolvedCompany.confidence * 100)}% confidence)`;
+                }
+                
+                disambiguationInfo.textContent = infoText;
+                document.getElementById('analysisContent').insertBefore(
+                    disambiguationInfo, 
+                    document.getElementById('analysisContent').firstChild
+                );
+            }
+            
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+
         // Auto-focus on company input
         document.getElementById('company').focus();
     </script>

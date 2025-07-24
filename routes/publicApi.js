@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticateApiKey, requirePermission, requireTier, trackApiUsage, apiCors, validateRequest } = require('../middleware/apiAuth');
 const analysisService = require('../services/analysisService');
+const disambiguationService = require('../services/disambiguationService');
 const { batchQueue } = require('../services/queueService');
 const pdfService = require('../services/pdfService');
 const supabase = require('../database/supabase');
@@ -66,38 +67,201 @@ router.use(trackApiUsage);
  *       429:
  *         description: Rate limit exceeded
  */
+
+/**
+ * @swagger
+ * /api/v1/disambiguate:
+ *   post:
+ *     summary: Disambiguate company name
+ *     description: Resolve ambiguous company names and get clarification options
+ *     security:
+ *       - ApiKeyAuth: []
+ *     tags:
+ *       - Research
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - company
+ *             properties:
+ *               company:
+ *                 type: string
+ *                 description: Company name to disambiguate
+ *                 example: "Apple"
+ *               context:
+ *                 type: object
+ *                 description: Additional context to help disambiguation
+ *                 properties:
+ *                   industry:
+ *                     type: string
+ *                     example: "Technology"
+ *                   location:
+ *                     type: string
+ *                     example: "California"
+ *     responses:
+ *       200:
+ *         description: Disambiguation options or resolved company
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isAmbiguous:
+ *                       type: boolean
+ *                     company:
+ *                       type: object
+ *                     candidates:
+ *                       type: array
+ *                     suggestedQuestions:
+ *                       type: array
+ */
+router.post('/disambiguate', requirePermission('research'), validateRequest({
+    required: ['company']
+}), async (req, res) => {
+    try {
+        const { company, context = {} } = req.body;
+        
+        const result = await disambiguationService.disambiguateCompany(company, context);
+        
+        res.json({
+            success: true,
+            data: result
+        });
+
+    } catch (error) {
+        console.error('Disambiguation error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Disambiguation failed',
+            message: error.message
+        });
+    }
+});
+
 router.post('/research', requirePermission('research'), validateRequest({
     required: ['company']
 }), async (req, res) => {
     try {
-        const { company, analysisType = 'comprehensive' } = req.body;
+        const { 
+            company, 
+            companyId, 
+            skipDisambiguation = false,
+            disambiguationAnswers = {},
+            analysisType = 'comprehensive' 
+        } = req.body;
 
+        let targetCompany = company;
+        let companyMetadata = null;
+
+        // Step 1: Disambiguation (unless skipped or companyId provided)
+        if (!skipDisambiguation && !companyId) {
+            console.log(`🔍 Starting disambiguation for: ${company}`);
+            
+            const disambiguationResult = await disambiguationService.disambiguateCompany(
+                company, 
+                req.body.context || {}
+            );
+
+            // If ambiguous, return disambiguation options
+            if (disambiguationResult.isAmbiguous) {
+                console.log(`❓ Company "${company}" requires disambiguation`);
+                return res.json({
+                    success: true,
+                    requiresDisambiguation: true,
+                    data: disambiguationResult
+                });
+            }
+
+            if (disambiguationResult.isUnknown) {
+                console.log(`⚠️ Unknown company: ${company}`);
+                companyMetadata = disambiguationResult.company;
+            } else {
+                targetCompany = disambiguationResult.company.name;
+                companyMetadata = disambiguationResult.company;
+                console.log(`✅ Resolved to: ${targetCompany}`);
+            }
+        }
+
+        // Step 2: Handle disambiguation answers
+        if (companyId || Object.keys(disambiguationAnswers).length > 0) {
+            console.log('📝 Processing disambiguation choice');
+            
+            if (companyId) {
+                companyMetadata = await disambiguationService.getCompanyById(companyId);
+                if (companyMetadata) {
+                    targetCompany = companyMetadata.name;
+                }
+            } else if (req.body.candidates && Object.keys(disambiguationAnswers).length > 0) {
+                // Filter candidates based on answers
+                const filtered = disambiguationService.filterCandidates(
+                    req.body.candidates, 
+                    disambiguationAnswers
+                );
+                if (filtered.length > 0) {
+                    companyMetadata = filtered[0];
+                    targetCompany = companyMetadata.name;
+                }
+            }
+
+            // Save disambiguation history
+            try {
+                await disambiguationService.saveDisambiguationChoice(req.apiKey.userId, {
+                    originalQuery: company,
+                    selectedCompany: companyMetadata,
+                    candidates: req.body.candidates,
+                    answers: disambiguationAnswers
+                });
+            } catch (historyError) {
+                console.log('Failed to save disambiguation history:', historyError.message);
+            }
+        }
+
+        // Step 3: Proceed with analysis
+        console.log(`🚀 Starting analysis for: ${targetCompany}`);
         const startTime = Date.now();
-        const result = await analysisService.analyzeCompany(company, { analysisType });
+        
+        const result = await analysisService.analyzeCompany(targetCompany, { 
+            analysisType,
+            companyMetadata 
+        });
+        
         const processingTime = Date.now() - startTime;
 
         // Track tokens and cost for billing
         req.tokensUsed = result.metadata?.tokensUsed || 0;
-        req.apiCost = (req.tokensUsed * 0.00001); // Example cost calculation
+        req.apiCost = (req.tokensUsed * 0.00001);
 
+        // Enhanced result with disambiguation metadata
         res.json({
             success: true,
             data: {
                 company: result.company,
+                originalQuery: company !== targetCompany ? company : undefined,
+                resolvedCompany: companyMetadata,
                 analysisType: result.analysisType,
                 analysis: result.analysis,
                 timestamp: result.timestamp,
                 processingTime,
+                disambiguationUsed: !!companyMetadata,
                 metadata: {
                     tokensUsed: req.tokensUsed,
                     cost: req.apiCost,
-                    model: result.metadata?.model
+                    model: result.metadata?.model,
+                    confidence: companyMetadata?.confidence
                 }
             }
         });
 
     } catch (error) {
-        console.error('Public API research error:', error);
+        console.error('Enhanced research error:', error);
         res.status(500).json({
             success: false,
             error: 'Analysis failed',
